@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智慧問答機器人架構解析</title>
+    <!-- 載入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 設置 Inter 字體為優先，並啟用平滑字體渲染 */
+        html { font-family: 'Inter', sans-serif; }
+        .slide {
+            height: 100vh;
+            scroll-snap-align: start;
+            padding: 4rem 8vw;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        body {
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            background-color: #0d1117; /* GitHub Dark Mode Background */
+            color: #c9d1d9; /* Light text color */
+        }
+        .code-block {
+            background-color: #161b22; /* Code block background */
+            border: 1px solid #30363d;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+        }
+        .highlight {
+            color: #58a6ff; /* Blue for emphasis */
+        }
+        .text-yellow {
+             color: #ffd700; /* Yellow for components */
+        }
+        .text-green-tech {
+            color: #56d364; /* Green for key tech */
+        }
+        .text-orange-code {
+            color: #f7931e; /* Orange for code terms */
+        }
+    </style>
+</head>
+<body>
+
+<!-- 投影片 1: 封面與總覽 -->
+<section class="slide bg-gray-900/50">
+    <div class="max-w-4xl mx-auto text-center">
+        <p class="text-4xl font-extrabold text-highlight mb-4">Chainlit + LangChain Agents</p>
+        <h1 class="text-7xl font-black text-white mb-8">
+            智慧問答機器人<br>
+            架構設計內涵
+        </h1>
+        <p class="text-2xl text-gray-400">
+            以 RAG (檢索增強生成) 與多工具 Agent 實現多功能 AI 助理
+        </p>
+        <div class="mt-12 space-x-4">
+            <span class="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-medium bg-blue-600 text-white">#Agentic-RAG</span>
+            <span class="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-medium bg-green-600 text-white">#ChainlitUI</span>
+            <span class="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-medium bg-yellow-600 text-white">#Dynamic-Tooling</span>
+        </div>
+    </div>
+</section>
+
+<!-- 投影片 2: 核心三層架構 (加強程式設計概念) -->
+<section class="slide">
+    <h2 class="text-5xl font-bold mb-12 text-center text-highlight">
+        設計哲學：清晰可維護的「三層架構」
+    </h2>
+    <div class="grid md:grid-cols-3 gap-8">
+
+        <!-- 配置層 -->
+        <div class="code-block p-6 rounded-xl transform hover:scale-[1.02] transition duration-300">
+            <p class="text-3xl mb-4 text-yellow font-extrabold">1. 配置層</p>
+            <p class="text-lg font-semibold text-gray-300 mb-2">(Configuration)</p>
+            <ul class="text-sm text-gray-400 space-y-2 text-left">
+                <li class="border-l-2 border-green-400 pl-2">
+                    <b class="text-white">環境分離：</b>使用 <code class="bg-gray-700 p-1 rounded text-orange-code">load_dotenv()</code> 確保敏感資訊（如 API Key）與程式碼分離。
+                </li>
+                <li class="border-l-2 border-green-400 pl-2">
+                    <b class="text-white">單一事實來源：</b>集中定義 <code class="bg-gray-700 p-1 rounded text-orange-code">LLM_MODEL_NAME</code> 和 RAG 資料夾路徑。
+                </li>
+            </ul>
+        </div>
+
+        <!-- 服務層 -->
+        <div class="code-block p-6 rounded-xl transform hover:scale-[1.02] transition duration-300 border-2 border-blue-500">
+            <p class="text-3xl mb-4 text-yellow font-extrabold">2. 服務層</p>
+            <p class="text-lg font-semibold text-gray-300 mb-2">(Services - Core Logic)</p>
+            <ul class="text-sm text-gray-400 space-y-2 text-left">
+                <li class="border-l-2 border-green-400 pl-2">
+                    <b class="text-white">核心引擎：</b><code class="bg-gray-700 p-1 rounded text-orange-code">ChatbotService</code> 封裝了 <b class="text-green-tech">Agent Executor</b> 的組裝與執行邏輯。
+                </li>
+                <li class="border-l-2 border-green-400 pl-2">
+                    <b class="text-white">依賴注入 (DI)：</b>使用工廠函式 <code class="bg-gray-700 p-1 rounded text-orange-code">create_chatbot_service</code> 建立所有 LangChain 物件（LLM, Embeddings, Retriever）。
+                </li>
+                <li class="border-l-2 border-green-400 pl-2">
+                    <b class="text-white">異步處理：</b>核心方法 <code class="bg-gray-700 p-1 rounded text-orange-code">process_message</code> 使用 <b class="text-green-tech">Async</b> 確保非阻塞 I/O (I/O-Bound)。
+                </li>
+            </ul>
+        </div>
+
+        <!-- 表現層 -->
+        <div class="code-block p-6 rounded-xl transform hover:scale-[1.02] transition duration-300">
+            <p class="text-3xl mb-4 text-yellow font-extrabold">3. 表現層</p>
+            <p class="text-lg font-semibold text-gray-300 mb-2">(Chainlit UI - Presentation)</p>
+            <ul class="text-sm text-gray-400 space-y-2 text-left">
+                <li class="border-l-2 border-green-400 pl-2">
+                    <b class="text-white">會話管理：</b><code class="bg-gray-700 p-1 rounded text-orange-code">cl.user_session</code> 用於儲存 <code class="bg-gray-700 p-1 rounded text-orange-code">ChatbotService</code> 實例，避免重複初始化。
+                </li>
+                <li class="border-l-2 border-green-400 pl-2">
+                    <b class="text-white">事件驅動：</b>使用 <b class="text-green-tech">Chainlit Decorators</b> (<code class="bg-gray-700 p-1 rounded text-orange-code">@cl.on_chat_start</code>, <code class="bg-gray-700 p-1 rounded text-orange-code">@cl.on_message</code>) 處理 UI 流程。
+                </li>
+                <li class="border-l-2 border-green-400 pl-2">
+                    <b class="text-white">檔案傳輸：</b>通過 <code class="bg-gray-700 p-1 rounded text-orange-code">message.elements</code> 接收使用者上傳的檔案物件。
+                </li>
+            </ul>
+        </div>
+    </div>
+    <p class="text-center text-sm text-gray-500 mt-8">此分層確保了 AI 邏輯、配置和 UI 之間的職責單一與高度解耦。</p>
+</section>
+
+<!-- 投影片 3: Agent 決策細節：多工具 RAG -->
+<section class="slide">
+    <h2 class="text-5xl font-bold mb-12 text-highlight">
+        核心引擎：Agent 的動態決策與工具使用
+    </h2>
+    <div class="grid md:grid-cols-2 gap-10 items-center">
+
+        <!-- LangChain Agent 組件 -->
+        <div class="p-6 rounded-xl code-block h-full">
+            <h3 class="text-2xl font-semibold mb-4 text-blue-400">Agent 元件與流程</h3>
+            <ul class="space-y-4 text-sm font-mono text-gray-300 text-left">
+                <li class="p-2 bg-gray-800 rounded border-l-4 border-yellow-500">
+                    <b class="text-yellow">Agent 類型：</b>使用 <b class="text-green-tech">Tool Calling Agent</b> (<code class="bg-gray-700 p-1 rounded text-orange-code">create_tool_calling_agent</code>)，這是基於 GPT-4o-mini <b class="highlight">原生函式呼叫 (Function Calling)</b> 能力的最佳實踐。
+                </li>
+                <li class="p-2 bg-gray-800 rounded border-l-4 border-yellow-500">
+                    <b class="text-yellow">提示工程：</b>使用 <code class="bg-gray-700 p-1 rounded text-orange-code">MessagesPlaceholder</code> 注入 <b class="text-green-tech">Chat History</b> 和 <b class="text-green-tech">Agent Scratchpad</b>，維持對話記憶和 Agent 思考過程。
+                </li>
+                <li class="p-2 bg-gray-800 rounded border-l-4 border-yellow-500">
+                    <b class="text-yellow">工具集合：</b>Agent 根據 <b class="highlight">問題情境</b> 選擇使用：
+                    <ul class="list-disc list-inside ml-4 mt-1 text-xs">
+                        <li><b class="text-orange-400">預載工具：</b> <code class="bg-gray-700 p-1 rounded">preloaded_document_retriever</code> (靜態知識庫)</li>
+                        <li><b class="text-green-400">即時工具：</b> <code class="bg-gray-700 p-1 rounded">uploaded_file_retriever</code> (動態上傳檔案)</li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Agent 優勢說明 -->
+        <div class="flex flex-col justify-center">
+            <h3 class="text-3xl font-semibold mb-4 text-green-tech">動態 Agent 的核心優勢</h3>
+            <ul class="space-y-4 text-lg text-gray-400">
+                <li>
+                    <b class="text-white">靈活性：</b>LLM <b class="highlight">自主判斷 (Reasoning)</b> 是否需要 RAG 檢索，以及需要使用哪個特定的 RAG 知識庫。
+                </li>
+                <li>
+                    <b class="text-white">即時能力：</b>上傳檔案後，Agent 立即獲得一個 <b class="text-green-tech">專屬工具</b> 來回答與該檔案相關的問題，無需重新部署。
+                </li>
+                <li>
+                    <b class="text-white">可擴展性：</b>未來只需在工具列表 <code class="bg-gray-700 p-1 rounded">tools</code> 中加入新的 <code class="bg-gray-700 p-1 rounded">Tool</code> 物件（如計算機、Google 搜尋），Agent 即可使用。
+                </li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<!-- 投影片 4: RAG 核心機制與即時索引 (新增技術細節) -->
+<section class="slide">
+    <h2 class="text-5xl font-bold mb-12 text-highlight text-center">
+        RAG 核心機制：資料處理與即時索引
+    </h2>
+
+    <div class="grid md:grid-cols-2 gap-10">
+        <!-- 數據流程 -->
+        <div class="code-block p-6 rounded-xl h-full">
+            <h3 class="text-2xl font-semibold mb-4 text-blue-400">文檔處理流水線</h3>
+            <ol class="space-y-4 text-sm font-mono text-gray-300 text-left">
+                <li class="p-2 bg-gray-800 rounded border-l-4 border-yellow-500">
+                    <b class="text-yellow">多格式載入器：</b>根據副檔名選擇 <b class="text-green-tech">Document Loaders</b> (<code class="bg-gray-700 p-1 rounded">TextLoader</code>, <code class="bg-gray-700 p-1 rounded">PyPDFLoader</code>, <code class="bg-gray-700 p-1 rounded">CSVLoader</code>)。
+                </li>
+                <li class="p-2 bg-gray-800 rounded border-l-4 border-yellow-500">
+                    <b class="text-yellow">文本切分：</b>使用 <code class="bg-gray-700 p-1 rounded">RecursiveCharacterTextSplitter</code> 進行文本切分，確保切塊 (Chunk) 語義連貫 (<code class="bg-gray-700 p-1 rounded">chunk_overlap=100</code>)。
+                </li>
+                <li class="p-2 bg-gray-800 rounded border-l-4 border-yellow-500">
+                    <b class="text-yellow">向量化與存儲：</b>使用 <code class="bg-gray-700 p-1 rounded">OpenAIEmbeddings</code> 將切塊轉換為向量，並存入 <b class="text-green-tech">FAISS (向量資料庫)</b>。
+                </li>
+                <li class="p-2 bg-gray-800 rounded border-l-4 border-yellow-500">
+                    <b class="text-yellow">即時檔案管理：</b>上傳檔案利用 <b class="text-green-tech">Python `tempfile`</b> 建立臨時路徑，處理完畢後 <b class="highlight">自動刪除</b>，確保系統整潔。
+                </li>
+            </ol>
+        </div>
+
+        <!-- 核心概念說明 -->
+        <div class="flex flex-col justify-center">
+            <h3 class="text-3xl font-semibold mb-6 text-green-tech">關鍵程式設計概念</h3>
+            <ul class="space-y-4 text-lg text-gray-400">
+                <li class="p-3 border-l-4 border-highlight bg-gray-800 rounded">
+                    <b class="text-white">FAISS 選擇：</b>選用 <b class="text-green-tech">FAISS (Facebook AI Similarity Search)</b> 作為向量儲存，因其高效的相似性搜索能力，且不需要額外的資料庫伺服器，適合輕量級即時 RAG。
+                </li>
+                <li class="p-3 border-l-4 border-highlight bg-gray-800 rounded">
+                    <b class="text-white">錯誤處理：</b>在檔案載入環節使用 <code class="bg-gray-700 p-1 rounded text-orange-code">try...except</code> 捕獲單個檔案的讀取錯誤，避免因一個損壞的檔案導致整個應用程式停止。
+                </li>
+                <li class="p-3 border-l-4 border-highlight bg-gray-800 rounded">
+                    <b class="text-white"> Retreiver 封裝：</b>輔助函式 <code class="bg-gray-700 p-1 rounded text-orange-code">_get_rag_tool</code> 負責將 <code class="bg-gray-700 p-1 rounded">BaseRetriever</code> 物件包裝成 <code class="bg-gray-700 p-1 rounded text-orange-code">Tool</code> 供 Agent 使用。
+                </li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<!-- 投影片 5: 即時互動與事件串流 (重大更新: 強調 Agent 透明度和消息控制) -->
+<section class="slide">
+    <h2 class="text-5xl font-bold mb-12 text-highlight text-center">
+        使用者體驗升級：Agent 執行透明化與消息流控制
+    </h2>
+
+    <div class="grid md:grid-cols-2 gap-10">
+        <!-- 程式碼範例 -->
+        <div class="code-block p-6 rounded-xl h-full">
+            <h3 class="text-2xl font-semibold mb-4 text-blue-400">Agent 事件追蹤與 UI 反饋</h3>
+            <pre class="whitespace-pre-wrap text-xs font-mono text-gray-300">
+# 核心邏輯：即時回報 Agent 的內部狀態
+async for event in agent_executor.astream_events(...):
+    if kind == "agent_action":
+        # 即時推送 Agent 的決策
+        await cl.Message(content="&nbsp;&nbsp;➤ 正在使用工具: ...").send()
+
+    elif kind == "tool_start":
+        # 顯示工具開始執行的狀態
+        await cl.Message(content="&nbsp;&nbsp;⟳ 開始使用工具: ...").send()
+
+    elif kind == "llm_chunk":
+        # 收集 LLM 輸出的片段，但暫不串流顯示
+        streamed_response += content
+
+# 訊息流控制：確保最終回答完整乾淨
+if full_response:
+    await cl.Message(content=full_response).send()
+    await msg.remove() # 移除初始化時發送的空消息
+                </pre>
+        </div>
+
+        <!-- 優勢說明 -->
+        <div class="flex flex-col justify-center">
+            <h3 class="text-3xl font-semibold mb-6 text-yellow">優勢：增強透明度與響應性</h3>
+            <ul class="space-y-4 text-lg text-gray-400">
+                <li class="p-3 border-l-4 border-highlight bg-gray-800 rounded">
+                    <b class="text-white">Agent 執行透明化 (Real-time Reporting):</b>
+                    雖然不串流 LLM 文本，但會**實時**推送 Agent 的決策 (`agent_action`) 和工具狀態 (`tool_start`, `tool_end`)，讓使用者即時了解 AI 的思考過程。
+                </li>
+                <li class="p-3 border-l-4 border-highlight bg-gray-800 rounded">
+                    <b class="text-white">訊息生命週期管理:</b>
+                    採用 **建立-發送-刪除** (<code class="bg-gray-700 p-1 rounded">msg.remove()</code>) 的機制，確保最終推送給使用者的答案是單一、完整的最終輸出，避免視覺上的錯亂。
+                </li>
+                <li class="p-3 border-l-4 border-highlight bg-gray-800 rounded">
+                    <b class="text-white">最終答案一致性:</b>
+                    優先採用 <code class="bg-gray-700 p-1 rounded">on_agent_finish</code> 事件捕獲的 **最終答案**，保證輸出與 Agent 總結的內容一致。
+                </li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<!-- 投影片 6: 總結與展望 (原來的投影片 5) -->
+<section class="slide bg-gray-900/50">
+    <div class="max-w-4xl mx-auto text-center">
+        <h2 class="text-5xl font-bold mb-8 text-highlight">
+            總結：一個強大、可擴展的 AI 引擎
+        </h2>
+        <p class="text-2xl text-gray-400 mb-10">
+            這個架構提供了一個堅實的基礎，讓您可以輕鬆擴展功能。
+        </p>
+        <div class="grid md:grid-cols-3 gap-6">
+            <div class="p-5 code-block rounded-xl bg-blue-900/30">
+                <p class="text-3xl font-extrabold mb-2 text-white">服務獨立</p>
+                <p class="text-sm text-gray-400">核心邏輯集中於 <code class="bg-gray-700 p-1 rounded">ChatbotService</code>，符合 SOLID 原則，便於測試。</p>
+            </div>
+            <div class="p-5 code-block rounded-xl bg-green-900/30">
+                <p class="text-3xl font-extrabold mb-2 text-white">動態能力</p>
+                <p class="text-sm text-gray-400">Agent <b class="highlight">基於工具</b>實現動態決策，支援靜態和即時的 RAG 檢索。</p>
+            </div>
+            <div class="p-5 code-block rounded-xl bg-yellow-900/30">
+                <p class="text-3xl font-extrabold mb-2 text-white">高 UX</p>
+                <p class="text-sm text-gray-400">利用 LangChain 的 <code class="bg-gray-700 p-1 rounded">astream_events</code> 提供實時反饋和串流輸出。</p>
+            </div>
+        </div>
+        <p class="text-xl mt-12 text-highlight">
+            感謝您的時間！
+        </p>
+    </div>
+</section>
+
+</body>
+</html>

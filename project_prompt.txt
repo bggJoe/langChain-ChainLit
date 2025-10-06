@@ -1,0 +1,142 @@
+### Project Generation Prompt for AI Developer Assistant
+
+**Objective:**
+Your task is to create a complete project for an intelligent chatbot using Python. The chatbot will feature a web UI built with Chainlit and will be powered by a LangChain Agent. This Agent must be capable of making intelligent decisions (MCP - Multi-Agent Collaboration/Planning) to either answer questions using its general knowledge or by consulting a local knowledge base (RAG - Retrieval-Augmented Generation).
+
+**Core Technologies:**
+- Python 3.10+
+- Chainlit (for the web UI)
+- LangChain (specifically `langchain-openai`, `langchain-agents`, `langchain-community`)
+- OpenAI (for LLM and Embeddings)
+- FAISS (for the in-memory vector store)
+- Dotenv (for environment variable management)
+
+---
+
+**Project File Structure:**
+Create the following file and folder structure:
+
+```
+.langchain_project/
+├── .gitignore
+├── Makefile
+├── README.md
+├── langchain_chainlit.py
+├── project_prompt.txt
+├── rag_data/           # This folder should contain user-provided .txt files
+├── requirements.txt
+├── start.bat
+└── start.sh
+```
+
+---
+
+**Implementation Details for `langchain_chainlit.py`:**
+
+Structure the code into three distinct logical layers: Configuration, Services (Core Logic), and Presentation (Chainlit UI).
+
+**1. Configuration Layer:**
+- At the top of the file, load environment variables using `dotenv`.
+- Configure logging to the `DEBUG` level.
+- Define two global constants: `RAG_DATA_FOLDER = "rag_data/"` and `LLM_MODEL_NAME = "gpt-4o-mini"`.
+
+**2. Service Layer (Core Logic):**
+
+- **`ChatbotService` Class:**
+  - **Purpose:** To encapsulate all core chatbot logic, acting as a bridge between the UI and LangChain.
+  - **`__init__(self, agent_executor)`:** The constructor should accept a fully configured `AgentExecutor` and initialize an empty list for `self.chat_history`.
+  - **`process_message(self, user_message)` Method:**
+    - This `async` method is the primary entry point for processing user input.
+    - It should first display a temporary "Processing..." message in the Chainlit UI.
+    - It must call `self.agent_executor.ainvoke()` with the `user_message` and the current `chat_history`.
+    - It must handle potential exceptions during the agent's execution and return an error message if any occur.
+    - After receiving the response, it must remove the temporary "Processing..." message.
+    - It should update `self.chat_history` with the user's message and the agent's final answer.
+    - Finally, it should return the agent's final answer as a string.
+
+- **`create_chatbot_service()` Factory Function:**
+  - **Purpose:** An `async` factory function to assemble the `ChatbotService` and its dependencies.
+  - **Steps:**
+    1.  Create an `OpenAIEmbeddings` instance.
+    2.  Call a helper function `_create_rag_retriever` to build the RAG retriever.
+    3.  Call a helper function `_get_rag_tool` to wrap the retriever into a `Tool`.
+    4.  Create a `ChatOpenAI` instance using the global `LLM_MODEL_NAME`.
+    5.  Call a helper function `_create_agent_executor`, which will return both the agent executor and its prompt.
+    6.  Log the agent's static configuration (the prompt and tool descriptions) for debugging and educational purposes.
+    7.  Instantiate and return `ChatbotService` with the created agent executor.
+
+- **`_create_rag_retriever(data_folder, embeddings)` Helper Function:**
+  - **Purpose:** To build the RAG knowledge base.
+  - **Steps:**
+    1.  Use `glob` to find all `.txt` files in the `data_folder`.
+    2.  If no files are found, raise a `FileNotFoundError`.
+    3.  Load all found files using `TextLoader`.
+    4.  Split the loaded documents into smaller chunks using `RecursiveCharacterTextSplitter`.
+    5.  Create a `FAISS` vector store from the document chunks and the provided `embeddings`.
+    6.  Return the vector store as a retriever (`.as_retriever()`).
+
+- **`_get_rag_tool(retriever)` Helper Function:**
+  - **Purpose:** To define the interface for the RAG tool that the agent will use.
+  - **Implementation:**
+    - Create and return a `Tool` instance.
+    - `name`: `document_retriever`
+    - `description`: Crucially, the description must clearly explain to the agent when to use this tool. Use a description like: "When you need to answer questions based on provided documents, use this tool. The input should be a question about the documents, such as 'Who is the main character in the story?' or 'What is the energy source of Atlantis?'"
+    - `func`: `retriever.invoke`
+
+- **`_create_agent_executor(llm, tools)` Helper Function:**
+  - **Purpose:** To assemble the core MCP decision-maker.
+  - **Implementation:**
+    - It must return a tuple containing the `AgentExecutor` and the `ChatPromptTemplate`.
+    - **Prompt Template:** Create a `ChatPromptTemplate` with the following messages:
+      1.  A `system` message defining the agent's role: "You are a multi-functional AI assistant. Use tools when necessary to answer questions. If the question is general knowledge, answer it directly. Respond in fluent and concise Traditional Chinese (Taiwan)."
+      2.  A `MessagesPlaceholder` for `chat_history`.
+      3.  A `human` message for the user's `{input}`.
+      4.  A `MessagesPlaceholder` for the `agent_scratchpad` (where the agent thinks).
+    - **Agent:** Use `create_tool_calling_agent` with the LLM, tools, and the prompt.
+    - **Executor:** Create and return an `AgentExecutor` with the agent and tools, setting `verbose=True`.
+
+**3. Presentation Layer (Chainlit UI):**
+
+- **`@cl.on_chat_start` Function:**
+  - **Purpose:** To initialize the application when a user starts a new chat.
+  - **Logic:**
+    1.  Call the `create_chatbot_service()` factory function to get a service instance.
+    2.  Store this single instance in the `cl.user_session` under the key `"chatbot_service"`.
+    3.  Display a welcome message.
+
+- **`@cl.on_message` Function:**
+  - **Purpose:** To handle incoming user messages.
+  - **Logic:**
+    1.  Retrieve the `chatbot_service` instance from `cl.user_session`.
+    2.  Call `chatbot_service.process_message()` with the user's message content.
+    3.  Send the final answer returned by the service to the Chainlit UI.
+
+---
+
+**Auxiliary File Contents:**
+
+- **`requirements.txt`:**
+  ```
+  langchain
+  langchain-core
+  langchain-community
+  langchain-openai
+  langchain-agents
+  langchain-text-splitters
+  chainlit
+  faiss-cpu
+  tiktoken
+  python-dotenv
+  ```
+
+- **`.gitignore`:**
+  - Include standard Python, venv, and IDE-specific ignore patterns. Crucially, ignore `venv/`, `__pycache__/`, `.env`, and `.idea`/`.vscode`.
+
+- **`Makefile`:**
+  - Create a `start` target that executes `chainlit run langchain_chainlit.py --port 8500`.
+
+- **`start.sh`:**
+  - A shell script that runs the same `chainlit run` command.
+
+- **`start.bat`:**
+  - A batch script for Windows that runs the same `chainlit run` command.

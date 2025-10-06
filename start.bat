@@ -1,0 +1,3 @@
+@echo off
+echo Starting Chainlit server on port 8500...
+chainlit run langchain_chainlit.py --port 8500

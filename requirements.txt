@@ -1,0 +1,16 @@
+# LangChain and related packages
+langchain
+langchain-core
+langchain-community
+langchain-openai
+langchain-text-splitters
+
+# Chainlit for UI
+chainlit
+
+# Vector Store and Embeddings
+faiss-cpu
+tiktoken
+
+# Environment variables
+python-dotenv

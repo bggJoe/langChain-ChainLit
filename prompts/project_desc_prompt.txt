@@ -1,0 +1,110 @@
+### Project Generation Prompt for AI Developer Assistant (Updated)
+
+**Objective:**
+Your task is to create a complete project for an intelligent chatbot using Python. The chatbot will feature a web UI built with Chainlit and will be powered by a LangChain Agent. This Agent must be capable of making intelligent decisions (MCP) to answer questions by dynamically choosing the correct information source.
+
+**Core Features:**
+- **Dual RAG System:** The Agent should have access to two distinct retrieval tools:
+  1.  **Preloaded Knowledge:** On startup, the application loads all `.txt` files from a `rag_data/` directory to form a base knowledge retriever (`preloaded_document_retriever`).
+  2.  **On-the-fly File Processing:** The user must be able to upload files (`.txt`, `.pdf`, `.csv`) during the chat. The application will create a temporary, high-priority retriever (`uploaded_file_retriever`) for these files.
+- **Intelligent Tool Selection:** The Agent must be prompted to prioritize the `uploaded_file_retriever` for questions related to recently uploaded files, and use the `preloaded_document_retriever` for more general, background knowledge questions.
+- **Streaming and UI Feedback:** The entire process, from tool selection to final answer generation, should be streamed to the Chainlit UI to provide clear feedback to the user.
+
+**Core Technologies:**
+- Python 3.10+
+- Chainlit (for the web UI)
+- LangChain (specifically `langchain-openai`, `langchain`, `langchain-community`)
+- OpenAI (for LLM and Embeddings)
+- FAISS (`faiss-cpu`) (for the in-memory vector store)
+- Document Loaders (`pypdf` for PDFs)
+- Dotenv (for environment variable management)
+
+---
+
+**Project File Structure:**
+Create the following file and folder structure:
+
+```
+.langchain_ChainLit/
+├── .gitignore
+├── Makefile
+├── README.md
+├── langchain_chainlit.py
+├── project_prompt.txt
+├── rag_data/
+├── requirements.txt
+├── start.bat
+└── start.sh
+```
+
+---
+
+**Implementation Details for `langchain_chainlit.py`:**
+
+Structure the code into three distinct logical layers: Configuration, Services (Core Logic), and Presentation (Chainlit UI).
+
+**1. Configuration Layer:**
+- Load environment variables using `dotenv`.
+- Configure logging.
+- Define global constants: `RAG_DATA_FOLDER` and `LLM_MODEL_NAME`.
+
+**2. Service Layer (Core Logic):**
+
+- **`ChatbotService` Class:**
+  - Encapsulates all core logic.
+  - `__init__`: Should store the LLM, embeddings, and the preloaded base retriever.
+  - `process_message(self, user_message, new_files)`: An `async` method that:
+    - Dynamically creates a temporary retriever if `new_files` are provided.
+    - Assembles a list of available tools (preloaded and/or temporary).
+    - Creates an `AgentExecutor` on-the-fly with the available tools.
+    - Streams the agent's execution (`astream_events`), providing real-time feedback to the UI (e.g., "Using tool X...").
+    - Updates chat history.
+
+- **`create_chatbot_service()` Factory Function:**
+  - An `async` factory to create the `ChatbotService` instance.
+  - It should initialize the LLM, embeddings, and create the preloaded retriever from `RAG_DATA_FOLDER`.
+
+- **Helper Functions:**
+  - `_create_rag_retriever`: Builds the RAG retriever from the `rag_data` folder.
+  - `_create_temp_retriever_from_files`: Builds a temporary RAG retriever from uploaded `cl.File` objects. It must handle different file types (.txt, .pdf, .csv).
+  - `_get_rag_tool`: A factory to wrap a retriever into a `Tool` with a specific name and description.
+  - `_create_agent_executor`: Assembles the agent. The system prompt is critical here and must instruct the agent on how to prioritize the two different retriever tools.
+
+**3. Presentation Layer (Chainlit UI):**
+
+- **`@cl.on_chat_start`:**
+  - Initializes and stores the `ChatbotService` in the user session.
+- **`@cl.on_message`:**
+  - Retrieves the service from the session.
+  - Passes the message content and any uploaded files (`message.elements`) to the `chatbot_service.process_message` method.
+
+---
+
+**Auxiliary File Contents:**
+
+- **`requirements.txt`:**
+  ```
+  # LangChain and related packages
+  langchain
+  langchain-core
+  langchain-community
+  langchain-openai
+  langchain-text-splitters
+
+  # Chainlit for UI
+  chainlit
+
+  # Vector Store, Embeddings and Loaders
+  faiss-cpu
+  tiktoken
+  pypdf
+
+  # Environment variables
+  python-dotenv
+  ```
+
+- **`.gitignore`:**
+  - Standard Python ignores, including `venv/`, `__pycache__/`, `.env`.
+
+- **`Makefile`, `start.sh`, `start.bat`:**
+  - Scripts to run the application using `chainlit run langchain_chainlit.py --port 8000`.

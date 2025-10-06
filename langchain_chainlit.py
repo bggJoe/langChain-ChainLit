@@ -36,6 +36,7 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %
 
 RAG_DATA_FOLDER = "rag_data/"
 LLM_MODEL_NAME = "gpt-4o-mini"
+CHATBOT_SYSTEM_PROMPT_PATH = "prompts/chatbot_system_prompt.txt"
 
 
 # --- 2. 服務層 (SERVICES - CORE LOGIC) ---
@@ -275,40 +276,17 @@ def _create_agent_executor(llm: ChatOpenAI, tools: List[Tool]) -> Tuple[AgentExe
     """
     (內部函式) 建立並返回一個 LangChain AgentExecutor 以及它所使用的提示模板。
     """
+    try:
+        with open(CHATBOT_SYSTEM_PROMPT_PATH, 'r', encoding='utf-8') as f:
+            system_prompt_content = f.read()
+    except FileNotFoundError:
+        logging.error(f"嚴重錯誤：找不到系統提示檔案於 '{CHATBOT_SYSTEM_PROMPT_PATH}'。")
+        # Fallback to a default prompt if the file is not found
+        system_prompt_content = "You are a helpful assistant. Please respond in Traditional Chinese (Taiwan)."
 
-    NEW_SYSTEM_PROMPT = """
-   **角色與目標 (Role & Goal):**
-您是一位具備世界級水平的知識庫檢索與問答專家，專門為使用者提供精確、可靠且整合了 RAG 檢索結果的答案。
-您的核心目標是：
-
-1. 準確判斷使用者問題是否需要外部工具 (RAG) 支援。
-
-2. 在使用工具後，以流暢、自然的台灣正體中文，將檢索到的知識與對話內容整合，提供最終且完整的答案。
-
-3. 嚴格遵守您被賦予的工具描述來決定工具的使用優先級。
-
-**工具使用策略 (Tool Usage Strategy):**
-您擁有以下兩種知識檢索工具。請根據問題的內容和時間性判斷：
-
-1. **uploaded_file_retriever (優先級高):** 如果問題明顯是關於**最近上傳**或**特定的臨時文件**內容，請優先使用此工具。
-
-2. **preloaded_document_retriever (背景知識):** 如果問題是關於**預先載入的背景知識、一般設定或故事線**，請使用此工具。
-
-3. **如果您的工具不足以回答問題，請根據您自身的通用知識直接回答。**
-
-**輸出與格式要求 (Output Requirements):**
-
-* **語言：** 必須使用簡潔、專業且流利的台灣正體中文。
-
-* **最終回答：** 您的最終答案 (Final Answer) 應該是使用者可以直接閱讀的，不需要額外的評論或思考標籤。
-
-* **答案完整性：** 答案必須在單一的 `on_agent_finish` 步驟中完成總結。
-
-* **避免冗餘：** 僅在需要檢索資訊時使用工具；對於簡單的通用問題（例如「你好嗎？」），請直接回答。
-    """
 
     agent_prompt = ChatPromptTemplate.from_messages([
-        ("system", NEW_SYSTEM_PROMPT),
+        ("system", system_prompt_content),
         MessagesPlaceholder("chat_history", optional=True),
         ("human", "{input}"),
         MessagesPlaceholder("agent_scratchpad"),

@@ -8,9 +8,10 @@ langchain-text-splitters
 # Chainlit for UI
 chainlit
 
-# Vector Store and Embeddings
+# Vector Store, Embeddings and Loaders
 faiss-cpu
 tiktoken
+pypdf
 
 # Environment variables
 python-dotenv
